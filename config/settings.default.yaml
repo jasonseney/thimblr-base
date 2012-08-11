@@ -1,0 +1,6 @@
+## Settings affecting Tumblr
+Tumblr:
+    PostsPerPage: 10
+
+ThemeFile: "Redux.html"
+DataFile: "demo.yml"

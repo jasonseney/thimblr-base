@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style type="text/css">
+			body { padding-top: 30px; }
+			.row { margin-bottom: 18px; }
+		</style>
+		<title>Thimblr</title>
+
+		<link rel="stylesheet" type="text/css" href="/css/bootstrap.css"></link>
+		<link rel="stylesheet" type="text/css" href="/css/bootstrap-responsive.css"></link>
+	</head>
+	<body>
+		<div class="container">
+
+			<div class="hero-unit">
+					<h1>Thimblr Basic</h1>
+					<p>Develop <strong>tumblr</strong> themes <em>quickly</em>, <em>easily</em>, and <em>locally</em>.</p>
+					<br />
+					<p><a class="btn btn-large btn-primary" href="/thimblr">View Theme <i class="icon-chevron-right icon-white"></i></a></p>
+
+			</div>
+
+			<div class="row">
+
+				<div class="span2">
+					<h4>Settings File</h4>
+				</div>
+				<div class="span8">
+					<code><%= settings.settingsfile %></code>
+				</div>
+			</div>
+
+			<div class="row">
+				<div class="span2">
+					<h4>Configuration</h4>
+				</div>
+				<div class="span8">
+					<table class="table table-striped table-bordered">
+						<thead>
+							<tr>
+								<th>Setting</th>
+								<th>Value</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Theme</td>
+								<td><code><%= settings.themeFile %></code></td>
+							</tr>
+							<tr>
+								<td>Data</td>
+								<td><code><%= settings.dataFile %></code></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<hr />
+
+			<div class="row">
+				<div class="span8">
+					<p>Inspired by <a href="https://github.com/mwunsch/thimble">Thimble</a> | 
+					Based off of <a href="https://github.com/jphastings/thimblr">Thimblr</a></p>
+				</div>
+			</div>
+		</div>
+
+		<script type="text/javascript">
+		/*<![CDATA[*/
+			// JS Code here
+		/*]]>*/
+		</script>
+	</body>
+</html>
+
+
