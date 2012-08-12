@@ -6,6 +6,7 @@ require 'thimblr/parser'
 require 'thimblr/importer'
 require 'rbconfig'
 require 'fileutils'
+require 'ap'
 
 class Thimblr::Application < Sinatra::Base
 
@@ -31,43 +32,44 @@ class Thimblr::Application < Sinatra::Base
 
 	# Define User Folders
 	@userAppFolder = File.expand_path(Locations[Platform]['dir'])
-	@userThemesFolder = File.expand_path(File.join(@userAppFolder,"themes"))
-	@userDataFolder = File.expand_path(File.join(@userAppFolder,"data"))
   
   def self.parse_config(config)
-	set :themeFile , File.join(@userThemesFolder, config['ThemeFile'])
-	set :dataFile , File.join(@userDataFolder, config['DataFile'])
-    set :tumblr, Thimblr::Parser::Defaults.merge(config['Tumblr'] || {})
+	set :themeFile , File.expand_path(config['ThemeFile'], @userAppFolder)
+	set :dataFile , File.expand_path(config['DataFile'], @userAppFolder)
+	set :tumblr, Thimblr::Parser::Defaults.merge(config['Tumblr'] || {})
   end
   
   configure do |s|
 
     set :root, File.join(File.dirname(__FILE__),"..")
     Dir.chdir root
-    set :config, File.join(root,'config')
+    set :configFolder, File.join(root,'config')
     set :settingsfile, File.expand_path(File.join(@userAppFolder,'settings.yaml'))
 
+	# Setup user app folder
 	FileUtils.mkdir_p(@userAppFolder) if not File.directory?(@userAppFolder)
 
-    # Generate Data & Theme directories if required
-	if not File.directory?(@userThemesFolder)
-		defaultThemesFolder = File.expand_path(File.join(root,'themes'))
-		FileUtils.cp_r(defaultThemesFolder,@userAppFolder) 
-	end
-    
-	if not File.directory?(@userDataFolder)
-		defaultDataFolder = File.expand_path(File.join(root,'data'))
-		FileUtils.cp_r(defaultDataFolder,@userAppFolder)
-	end
-    
     begin # Try to load the settings file, if it's crap then overwrite it with the defaults
 	  settingsYaml = YAML::load(open(settingsfile))
       s.parse_config(settingsYaml)
     rescue
-      FileUtils.cp(File.join(config,'settings.default.yaml'),settingsfile)
+      FileUtils.cp(File.join(configFolder,'settings.default.yaml'),settingsfile)
       retry
     end
-    
+
+	## Setup default theme and data files
+	userThemesFolder = File.expand_path(File.join(@userAppFolder,"themes"))
+	userDataFolder = File.expand_path(File.join(@userAppFolder,"data"))
+
+	if not File.directory?(userThemesFolder)
+		defaultThemesFolder = File.expand_path(File.join(root,'themes'))
+		FileUtils.cp_r(defaultThemesFolder,@userAppFolder) 
+	end
+	if not File.directory?(userDataFolder)
+		defaultDataFolder = File.expand_path(File.join(root,'data'))
+		FileUtils.cp_r(defaultDataFolder,@userAppFolder)
+	end
+
   end
 
   helpers do

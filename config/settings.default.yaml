@@ -2,5 +2,12 @@
 Tumblr:
     PostsPerPage: 10
 
-ThemeFile: "Redux.html"
-DataFile: "demo.yml"
+# Locations for theme and data files
+#
+# You may use any type of path. Examples:
+#
+# themes/Redux.html (relative to this file)
+# ~/themes/Redux.html (in your user directory)
+# /Library/WebServer/Documents/themes/Redux.html (absolute path)
+ThemeFile: "themes/Redux.html"
+DataFile: "data/demo.yml"
