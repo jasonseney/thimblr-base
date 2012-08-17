@@ -43,6 +43,7 @@ class Thimblr::Application < Sinatra::Base
 
     set :root, File.join(File.dirname(__FILE__),"..")
     Dir.chdir root
+
     set :configFolder, File.join(root,'config')
     set :settingsfile, File.expand_path(File.join(@userAppFolder,'settings.yaml'))
 

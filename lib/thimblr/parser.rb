@@ -55,7 +55,7 @@ module Thimblr
     def set_theme(theme_html)
       @theme = theme_html
       # Changes for Thimblr
-      @theme.gsub!(/href="\//,"href=\"/thimblr/")
+      #@theme.gsub!(/href="\//,"href=\"/thimblr/")
       
       # Get the meta constants
       @theme.scan(/(<meta.*?name="(\w+):(.+?)".*?\/>)/).each do |meta|
