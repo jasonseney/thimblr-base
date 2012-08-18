@@ -6,6 +6,8 @@ Develop **tumblr** themes _quickly_, _easily_, and _locally_.
 Installation
 ------------
 
+**Requirements:** Runs on Ruby, uses [Bundler](http://gembundler.com) for dependencies.
+
 	git clone https://github.com/jasonseney/thimblr-base.git
 	cd thimblr-base
 	bundle install
