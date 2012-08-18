@@ -127,8 +127,9 @@ class Thimblr::Application < Sinatra::Base
   end
 
   # TODO: tagged pages
-  get %r{^/thimblr/tagged/(.+)$} do |tags|
-    halt 501, "Not Implemented"
+  get %r{^/thimblr/tagged/(.+)$} do |tag|
+	  tag["-"] = " "
+	  @parser.render_tagPage(tag)
   end
 
   # Protected page names that shouldn't go to pages and aren't implemented in Thimblr

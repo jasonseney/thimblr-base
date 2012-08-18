@@ -112,6 +112,31 @@ module Thimblr
       # Generate a post summary if a title isn't present
       parse(@theme,blocks,constants)
     end
+
+	def render_tagPage(tag, page = 1)
+      blocks = @blocks
+      constants = @constants
+
+	  @posts.delete_if do |post|
+		!post['Tags'] or !post['Tags'].any?{ |s| s.casecmp(tag)==0 }
+	  end
+
+      constants['TotalPages'] = (@posts.length / @settings['PostsPerPage'].to_i).ceil
+
+      blocks['PreviousPage'] = page > 1
+      blocks['NextPage'] = page < constants['TotalPages']
+      blocks['Posts'] = true
+      blocks['IndexPage'] = true
+	  blocks['TagPage'] = true
+      constants['NextPage'] = page + 1
+      constants['CurrentPage'] = page
+      constants['PreviousPage'] = page - 1
+    
+      # ffw thru posts array if required
+      @posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
+      parse(@theme,blocks,constants)
+
+	end
   
     # Renders the search page from the query
     def render_search(query)
@@ -138,11 +163,11 @@ module Thimblr
     end
   
     private
-    def parse(string,blocks = {},constants = {})
+    def parse(theme,blocks = {},constants = {})
       blocks = blocks.dup
       constants = constants.dup
       blocks.merge! constants['}blocks'] if !constants['}blocks'].nil?
-      string.gsub(/\{block:([\w:]+)\}(.*?)\{\/block:\1\}|\{([\w\-:]+)\}/m) do |match| # TODO:add not block to the second term
+      theme.gsub(/\{block:([\w:]+)\}(.*?)\{\/block:\1\}|\{([\w\-:]+)\}/m) do |match| # TODO:add not block to the second term
         if $2 # block
           blockname = $1
           content = $2
