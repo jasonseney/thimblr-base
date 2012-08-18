@@ -117,6 +117,7 @@ module Thimblr
       blocks = @blocks
       constants = @constants
 
+	  # Filter out posts without tag or not this tag
 	  @posts.delete_if do |post|
 		!post['Tags'] or !post['Tags'].any?{ |s| s.casecmp(tag)==0 }
 	  end
