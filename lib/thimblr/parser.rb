@@ -33,7 +33,7 @@ module Thimblr
       @followed = template['Followed']
       # Add all suitable @template options to @constants
       @constants = template.delete_if { |key,val| ["Pages","Following","Posts","SubmissionsEnabled","Followed"].include? key }
-      @constants['RSS'] = '/thimblr/rss'
+      @constants['RSS'] = '/rss'
       @constants['Favicon'] = '/favicon.ico'
       @blocks = { # These are the defaults
         'Twitter'            => !@constants['TwitterUsername'].empty?,
@@ -54,8 +54,6 @@ module Thimblr
   
     def set_theme(theme_html)
       @theme = theme_html
-      # Changes for Thimblr
-      #@theme.gsub!(/href="\//,"href=\"/thimblr/")
       
       # Get the meta constants
       @theme.scan(/(<meta.*?name="(\w+):(.+?)".*?\/>)/).each do |meta|
@@ -106,8 +104,8 @@ module Thimblr
       blocks['PermalinkPagination'] = (@posts.length > 1)
       blocks['PreviousPost'] = (postid < @posts.length)
       blocks['NextPost'] = (postid > 0)
-      constants['PreviousPost'] = "/thimblr/post/#{postid - 1}"
-      constants['NextPost'] = "/thimblr/post/#{postid + 1}"
+      constants['PreviousPost'] = "/post/#{postid - 1}"
+      constants['NextPost'] = "/post/#{postid + 1}"
     
       # Generate a post summary if a title isn't present
       parse(@theme,blocks,constants)
@@ -221,7 +219,7 @@ module Thimblr
                   post['Beats'] = (thisday.usec / 1000).round
                   post['TimeAgo'] = thisday.ago
                 
-                  post['Permalink'] = "/thimblr/post/#{post['PostId']}/" # TODO: Port number
+                  post['Permalink'] = "/post/#{post['PostId']}/" # TODO: Port number
                   post['ShortURL'] = post['Permalink'] # No need for a real short URL
                   post['TagsAsClasses'] = (post['Tags'] || []).collect{ |tag| tag.gsub(/[^a-z]/i,"_").downcase }.join(" ")
                   post['}numberonpage'] = n + 1 # use a } at the begining so the theme can't access it
@@ -319,7 +317,7 @@ module Thimblr
             end
           when 'Tags'
             repeat = constants['Tags'].collect do |tag|
-              {"Tag" => tag,"URLSafeTag" => tag.gsub(/[^a-zA-Z]/,"_").downcase,"TagURL" => "/thimblr/tagged/#{CGI.escape(tag)}","ChronoTagURL" => "/thimblr/tagged/#{CGI.escape(tag)}"} # TODO: ChronoTagURL
+              {"Tag" => tag,"URLSafeTag" => tag.gsub(/[^a-zA-Z]/,"_").downcase,"TagURL" => "/tagged/#{CGI.escape(tag)}","ChronoTagURL" => "/tagged/#{CGI.escape(tag)}"} # TODO: ChronoTagURL
             end
             blocks['Tags'] = repeat.length > 0
             constants['Tags'] = nil

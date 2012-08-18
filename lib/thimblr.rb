@@ -79,8 +79,8 @@ class Thimblr::Application < Sinatra::Base
     end
   end
 
-  get '/' do
-	  erb :index
+  get '/settings' do
+	  erb :settings
   end
 
   # Downloads feed data from a tumblr site
@@ -98,7 +98,7 @@ class Thimblr::Application < Sinatra::Base
 
   before do
 	# Only on /thimblr/ pages, initialize parser
-    if request.env['PATH_INFO'] =~ /^\/thimblr/
+    # if !request.env['PATH_INFO'] =~ /^\/settings/
 
 	  puts "#{settings.themeFile} : #{settings.dataFile}"
 
@@ -108,37 +108,37 @@ class Thimblr::Application < Sinatra::Base
 		#TODO: This should have an error
 		halt 500, "Missing file(s). Theme: \"#{settings.themeFile}\" , Data: \"#{settings.dataFile}\""
       end
-    end
+    #end
   end
 
   # The index page
-  get %r{^/thimblr(?:/page/(\d+))?/?$} do |pageno|
+  get %r{^/(?:/page/(\d+))?/?$} do |pageno|
     @parser.render_posts((pageno || 1).to_i)
   end
 
   # An individual post
-  get %r{^/thimblr/post/(\d+)/?.*$} do |postid|
+  get %r{^/post/(\d+)/?.*$} do |postid|
     @parser.render_permalink(postid)
   end
   
   # TODO: Search page
-  get %r{^/thimblr/search/(.+)$} do |query|
+  get %r{^/search/(.+)$} do |query|
     @parser.render_search(query)
   end
 
   # TODO: tagged pages
-  get %r{^/thimblr/tagged/(.+)$} do |tag|
+  get %r{^/tagged/(.+)$} do |tag|
 	  tag["-"] = " "
 	  @parser.render_tagPage(tag)
   end
 
   # Protected page names that shouldn't go to pages and aren't implemented in Thimblr
-  get %r{^/thimblr/(?:rss|archive)$} do 
+  get %r{^/(?:rss|archive)$} do 
     halt 501, "Not Implemented"
   end
 
   # TODO: Pages
-  get '/thimblr/*' do
+  get '/*' do
     @parser.render_page(params[:splat])
   end
 end
