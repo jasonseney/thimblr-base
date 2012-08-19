@@ -310,6 +310,11 @@ module Thimblr
           when 'Label'
             blocks['Label'] = !constants['Label'].empty?
           # TODO: Notes
+		  when 'NoteCount'
+			notes = constants['NoteCount']
+			if(notes && notes > 0)
+				blocks['NoteCount'] = true
+			end
           # Tags
           when 'HasTags'
             if constants['Tags'].length > 0
