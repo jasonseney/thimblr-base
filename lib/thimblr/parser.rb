@@ -92,6 +92,9 @@ module Thimblr
       postid = postid.to_i
       blocks = @blocks
       constants = @constants
+
+	  totalPostCount = @posts.length
+
       @posts.delete_if do |post|
         post['PostId'] != postid
       end
@@ -101,8 +104,9 @@ module Thimblr
       blocks['PostTitle'] = true
       blocks['PostSummary'] = true
       blocks['PermalinkPage'] = true
-      blocks['PermalinkPagination'] = (@posts.length > 1)
-      blocks['PreviousPost'] = (postid < @posts.length)
+      blocks['PermalinkPagination'] = true
+      blocks['PermalinkPagination'] = (totalPostCount > 1)
+      blocks['PreviousPost'] = (postid < totalPostCount)
       blocks['NextPost'] = (postid > 0)
       constants['PreviousPost'] = "/post/#{postid - 1}"
       constants['NextPost'] = "/post/#{postid + 1}"
