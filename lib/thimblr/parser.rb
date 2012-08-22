@@ -3,6 +3,8 @@
 #
 # TODO
 # ====
+#
+# * UrlEncoded support
 # * Add a logger so errors with the parse can be displayed
 # * Likes
 # * More blocks
@@ -134,6 +136,9 @@ module Thimblr
       constants['NextPage'] = page + 1
       constants['CurrentPage'] = page
       constants['PreviousPage'] = page - 1
+
+      constants['Tag'] = tag
+      constants['URLSafeTag'] = URI::encode(tag.gsub(/\s/, '-'))
     
       # ffw thru posts array if required
       @posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
