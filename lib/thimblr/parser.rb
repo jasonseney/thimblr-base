@@ -138,7 +138,7 @@ module Thimblr
       constants['PreviousPage'] = page - 1
 
       constants['Tag'] = tag
-      constants['URLSafeTag'] = URI::encode(tag.gsub(/\s/, '-'))
+      constants['URLSafeTag'] = URI::encode(tag.gsub(/\s/, '+'))
     
       # ffw thru posts array if required
       @posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
