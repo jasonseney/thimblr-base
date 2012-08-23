@@ -13,6 +13,7 @@
 require 'yaml'
 require 'cgi'
 require 'time'
+require 'ap'
 
 module Thimblr
   class Parser
@@ -275,6 +276,7 @@ module Thimblr
                   post
                 end
               end.compact
+			  @posts.seek(0) # Reset post iterator for subsequent blocks
             end
           # Post details
           when 'Title'
