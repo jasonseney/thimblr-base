@@ -25,7 +25,7 @@ module Thimblr
       'PostsPerPage' => 10
     }
     
-    def initialize(data_file,theme_file = nil,settings = {})
+    def initialize(data_file,theme_markup = nil,settings = {})
       template = YAML::load(open(data_file))
       @settings = Defaults.merge settings
       @apid = 0
@@ -50,9 +50,7 @@ module Thimblr
         'More'               => true
       }
     
-      if theme_file and File.exists?(theme_file)
-        set_theme(open(theme_file).read)
-      end
+	  set_theme(theme_markup) if theme_markup
     end
   
     def set_theme(theme_html)

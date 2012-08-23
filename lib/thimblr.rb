@@ -6,6 +6,7 @@ require 'thimblr/parser'
 require 'thimblr/importer'
 require 'rbconfig'
 require 'fileutils'
+require 'sinatra/partial'
 require 'ap'
 
 class Thimblr::Application < Sinatra::Base
@@ -46,6 +47,9 @@ class Thimblr::Application < Sinatra::Base
 
     set :configFolder, File.join(root,'config')
     set :settingsfile, File.expand_path(File.join(@userAppFolder,'settings.yaml'))
+
+	register Sinatra::Partial
+	set :partial_template_engine, :erb
 
 	# Setup user app folder
 	FileUtils.mkdir_p(@userAppFolder) if not File.directory?(@userAppFolder)
@@ -103,7 +107,11 @@ class Thimblr::Application < Sinatra::Base
 	  puts "#{settings.themeFile} : #{settings.dataFile}"
 
       if File.exists?(settings.themeFile) and File.exists?(settings.dataFile) 
-        @parser = Thimblr::Parser.new(settings.dataFile,settings.themeFile,settings.tumblr)
+		theme_markup = open(settings.themeFile).read
+
+		theme_erbed = erb theme_markup
+
+        @parser = Thimblr::Parser.new(settings.dataFile,theme_erbed,settings.tumblr)
       else
 		#TODO: This should have an error
 		halt 500, "Missing file(s). Theme: \"#{settings.themeFile}\" , Data: \"#{settings.dataFile}\""
