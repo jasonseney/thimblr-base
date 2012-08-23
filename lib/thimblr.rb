@@ -6,7 +6,7 @@ require 'thimblr/parser'
 require 'thimblr/importer'
 require 'rbconfig'
 require 'fileutils'
-require 'sinatra/partial'
+require 'liquid'
 require 'ap'
 
 class Thimblr::Application < Sinatra::Base
@@ -37,8 +37,13 @@ class Thimblr::Application < Sinatra::Base
   def self.parse_config(config)
 	set :themeFile , File.expand_path(config['ThemeFile'], @userAppFolder)
 	set :dataFile , File.expand_path(config['DataFile'], @userAppFolder)
+	set :assetsLocation, config['AssetsLocation']
 	set :tumblr, Thimblr::Parser::Defaults.merge(config['Tumblr'] || {})
   end
+
+	def self.test_function(some_var)
+		return "I got the following variable: " + some_var
+	end
   
   configure do |s|
 
@@ -75,6 +80,8 @@ class Thimblr::Application < Sinatra::Base
 		FileUtils.cp_r(defaultDataFolder,@userAppFolder)
 	end
 
+	set :userThemesFolder, userThemesFolder
+
   end
 
   helpers do
@@ -107,11 +114,16 @@ class Thimblr::Application < Sinatra::Base
 	  puts "#{settings.themeFile} : #{settings.dataFile}"
 
       if File.exists?(settings.themeFile) and File.exists?(settings.dataFile) 
+
 		theme_markup = open(settings.themeFile).read
 
-		theme_erbed = erb theme_markup
+		themeFolder = File.expand_path(File.dirname(settings.themeFile))
 
-        @parser = Thimblr::Parser.new(settings.dataFile,theme_erbed,settings.tumblr)
+		Liquid::Template.file_system = Liquid::LocalFileSystem.new(themeFolder)
+		liquid_template = Liquid::Template.parse(theme_markup) # Parses and compiles the template
+		theme_liquified = liquid_template.render("assetsLocation" => settings.assetsLocation)
+
+        @parser = Thimblr::Parser.new(settings.dataFile,theme_liquified,settings.tumblr)
       else
 		#TODO: This should have an error
 		halt 500, "Missing file(s). Theme: \"#{settings.themeFile}\" , Data: \"#{settings.dataFile}\""
