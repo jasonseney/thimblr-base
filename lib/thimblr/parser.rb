@@ -17,6 +17,7 @@ require 'ap'
 
 module Thimblr
   class Parser
+
     BackCompatibility = {"Type" => {
       "Regular" => "Text",
       "Conversation" => "Chat"
@@ -24,6 +25,8 @@ module Thimblr
     Defaults = {
       'PostsPerPage' => 10
     }
+
+	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|\{([a-zA-Z\s\-:]+)\}/m
     
     def initialize(data_file,theme_markup = nil,settings = {})
       template = YAML::load(open(data_file))
@@ -171,10 +174,16 @@ module Thimblr
   
     private
     def parse(theme,blocks = {},constants = {})
+
       blocks = blocks.dup
       constants = constants.dup
+
+	  # Not sure what this does
       blocks.merge! constants['}blocks'] if !constants['}blocks'].nil?
-      theme.gsub(/\{block:([\w:]+)\}(.*?)\{\/block:\1\}|\{([\w\-:]+)\}/m) do |match| # TODO:add not block to the second term
+
+	  # Each block match, parse something
+	  theme.gsub(BlockRegex) do |match| # TODO:add not block to the second term
+
         if $2 # block
           blockname = $1
           content = $2
