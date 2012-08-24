@@ -417,11 +417,3 @@ class NilClass
     true
   end
 end
-
-=begin
-t = Thimblr::Parser.new("demo")
-t.set_theme(open("themes/101.html").read)
-
-
-puts t.render_posts
-=end

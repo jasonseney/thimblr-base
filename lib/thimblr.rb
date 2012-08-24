@@ -53,9 +53,6 @@ class Thimblr::Application < Sinatra::Base
     set :configFolder, File.join(root,'config')
     set :settingsfile, File.expand_path(File.join(@userAppFolder,'settings.yaml'))
 
-	register Sinatra::Partial
-	set :partial_template_engine, :erb
-
 	# Setup user app folder
 	FileUtils.mkdir_p(@userAppFolder) if not File.directory?(@userAppFolder)
 
