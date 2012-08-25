@@ -5,8 +5,10 @@ AskLabel: "Ask me anything"
 SubmissionsEnabled: true
 TwitterUsername: jphastings
 Pages:
-  - Label: About Me
-    URL: about_me/
+  - PageURL: about-me
+    Title: About Me
+    Body: "<p>Some text about me here</p>"
+    Type: Text
 Following:
   - Name: staff
     Title: Tumblr Staff

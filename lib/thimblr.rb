@@ -155,7 +155,7 @@ class Thimblr::Application < Sinatra::Base
   end
 
   # TODO: Pages
-  get '/*' do
-    @parser.render_page(params[:splat])
+  get '/*' do |pageURL|
+    @parser.render_page(pageURL)
   end
 end

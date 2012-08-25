@@ -29,23 +29,23 @@ module Thimblr
 	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{([\w\-:]+)\}/m
     
     def initialize(data_file,theme_markup = nil,settings = {})
-      template = YAML::load(open(data_file))
+      data = YAML::load(open(data_file))
       @settings = Defaults.merge settings
       @apid = 0
-      @posts = ArrayIO.new(template['Posts'])
-      @groupmembers = template['GroupMembers']
-      @pages = template['Pages']
-      @following = template['Following']
-      @followed = template['Followed']
-      # Add all suitable @template options to @constants
-      @constants = template.delete_if { |key,val| ["Pages","Following","Posts","SubmissionsEnabled","Followed"].include? key }
+      @posts = ArrayIO.new(data['Posts'])
+      @groupmembers = data['GroupMembers']
+      @pages = data['Pages']
+      @following = data['Following']
+      @followed = data['Followed']
+      # Add all suitable data options to @constants
+      @constants = data.delete_if { |key,val| ["Pages","Following","Posts","SubmissionsEnabled","Followed"].include? key }
       @constants['RSS'] = '/rss'
       @constants['Favicon'] = '/favicon.ico'
       @blocks = { # These are the defaults
         'Twitter'            => !@constants['TwitterUsername'].empty?,
         'Description'        => !@constants['Description'].empty?,
         'Pagination'         => (@posts.length > @settings['PostsPerPage'].to_i),
-        'SubmissionsEnabled' => template['SubmissionsEnabled'],
+        'SubmissionsEnabled' => data['SubmissionsEnabled'],
         'AskEnabled'         => !@constants['AskLabel'].empty?,
         'HasPages'           => (@pages.length > 0 rescue false),
         'Following'          => (@following.length > 0 rescue false),
@@ -164,11 +164,23 @@ module Thimblr
     end
   
     # Renders a special page
-    def render_page(pageid)
+    def render_page(pageURL)
+
       blocks = @blocks
       constants = @constants
-      blocks['Pages'] = true
+
+      blocks['Posts'] = true
+      blocks['PostTitle'] = true
+      blocks['PostSummary'] = true
+      blocks['PermalinkPage'] = true
+      blocks['PermalinkPagination'] = false
     
+	  matchingPages = @pages.select { |page| page['PageURL'] == pageURL }
+
+      raise "Page Not Found" if matchingPages.length != 1
+
+	  @posts = ArrayIO.new(matchingPages);
+
       parse(@theme,blocks,constants)
     end
   
@@ -200,12 +212,13 @@ module Thimblr
             blockname = $1
           when 'Posts'
             if @blocks['Posts']
+
               lastday = nil
               repeat = @settings['PostsPerPage'].times.collect do |n|
                 if not (post = @posts.advance).nil?
                   post['}blocks'] = {}
                   post['}blocks']['Date'] = true # Always render Date on Post pages
-                  thisday = Time.at(post['Timestamp'])
+                  thisday = Time.at(post['Timestamp'] || Time.new)
                   post['}blocks']['NewDayDate'] = thisday.strftime("%Y-%m-%d") != lastday
                   post['}blocks']['SameDayDate'] = !post['}blocks']['NewDayDate']
                 
