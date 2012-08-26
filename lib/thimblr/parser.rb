@@ -26,7 +26,7 @@ module Thimblr
       'PostsPerPage' => 10
     }
 
-	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{([\w\-:]+)(\w+\s+\w+)*\}/m
+	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{(([\w\-:]+)(\w+\s+\w+)*)\}/m
     
   def initialize(data_file,theme_markup = nil,settings = {})
 
