@@ -26,10 +26,12 @@ module Thimblr
       'PostsPerPage' => 10
     }
 
-	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{([\w\-:]+)\}/m
+	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{([\w\-:]+)(\w+\s+\w+)*\}/m
     
     def initialize(data_file,theme_markup = nil,settings = {})
+
       data = YAML::load(open(data_file))
+
       @settings = Defaults.merge settings
       @apid = 0
       @posts = ArrayIO.new(data['Posts'])
@@ -37,6 +39,7 @@ module Thimblr
       @pages = data['Pages']
       @following = data['Following']
       @followed = data['Followed']
+	  
       # Add all suitable data options to @constants
       @constants = data.delete_if { |key,val| ["Pages","Following","Posts","SubmissionsEnabled","Followed"].include? key }
       @constants['RSS'] = '/rss'
@@ -53,25 +56,33 @@ module Thimblr
         'More'               => true
       }
     
-	  set_theme(theme_markup) if theme_markup
+	  @theme = theme_markup
+
+	  load_appearance_options()
     end
   
-    def set_theme(theme_html)
-      @theme = theme_html
-      
+	def load_appearance_options()
       # Get the meta constants
+
+	  metaOptions = {}
+
       @theme.scan(/(<meta.*?name="(\w+):(.+?)".*?\/>)/).each do |meta|
         value = (meta[0].scan(/content="(.+?)"/)[0] || [])[0]
         if meta[1] == "if"
           @blocks[meta[2].gsub(/(?:\ |^)\w/) {|s| s.strip.upcase}] = (value == 1)
         else
-          @constants[meta[1..-1].join(":")] = value
+          metaOptions[meta[1..-1].join(":")] = value
           @blocks[meta[2]+"Image"] = true if meta[1] == "image"
         end
       end
-    
+
+	  # constants has stuff from data.yml
+	  # metaOptions has stuff from the meta tags
+	  # we want to merge constants INTO metaOptions, overwriting meta tags
+	  @constants = metaOptions.merge(@constants)
+
       @constants['MetaDescription'] = CGI.escapeHTML(@constants['Description'])
-    end
+	end
   
     # Renders a tumblr page from the stored template
     def render_posts(page = 1)
@@ -134,7 +145,7 @@ module Thimblr
       blocks['NextPage'] = page < constants['TotalPages']
       blocks['Posts'] = true
       blocks['IndexPage'] = true
-	  blocks['TagPage'] = true
+			blocks['TagPage'] = true
       constants['NextPage'] = page + 1
       constants['CurrentPage'] = page
       constants['PreviousPage'] = page - 1
@@ -175,26 +186,112 @@ module Thimblr
       blocks['PermalinkPage'] = true
       blocks['PermalinkPagination'] = false
     
-	  matchingPages = @pages.select { |page| page['PageURL'] == pageURL }
+			matchingPages = @pages.select { |page| page['PageURL'] == pageURL }
 
       raise "Page Not Found" if matchingPages.length != 1
 
-	  @posts = ArrayIO.new(matchingPages);
+			@posts = ArrayIO.new(matchingPages);
 
       parse(@theme,blocks,constants)
     end
+
+		private
+		def parse_post(post,lastday, post_count)
+				post['}blocks'] = {}
+				post['}blocks']['Date'] = true # Always render Date on Post pages
+				thisday = Time.at(post['Timestamp'] || Time.new)
+				post['}blocks']['NewDayDate'] = thisday.strftime("%Y-%m-%d") != lastday
+				post['}blocks']['SameDayDate'] = !post['}blocks']['NewDayDate']
+			
+				lastday = thisday.strftime("%Y-%m-%d")
+				post['DayOfMonth'] = thisday.day
+				post['DayOfMonthWithZero'] = thisday.strftime("%d")
+				post['DayOfWeek'] = thisday.strftime("%A")
+				post['ShortDayOfWeek'] = thisday.strftime("%a")
+				post['DayOfWeekNumber'] = thisday.strftime("%w").to_i + 1
+				ordinals = ['st','nd','rd']
+				post['DayOfMonthSuffix'] = ([11,12].include? thisday.day) ? "th" : ordinals[thisday.day % 10 - 1]
+				post['DayOfYear'] = thisday.strftime("%j")
+				post['WeekOfYear'] = thisday.strftime("%W")
+				post['Month'] = thisday.strftime("%B")
+				post['ShortMonth'] = thisday.strftime("%b")
+				post['MonthNumber'] = thisday.month
+				post['MonthNumberWithZero'] = thisday.strftime("%w")
+				post['Year'] = thisday.strftime("%Y")
+				post['ShortYear'] = thisday.strftime("%y")
+				post['CapitalAmPm'] = thisday.strftime("%p")
+				post['AmPm'] = post['CapitalAmPm'].downcase
+				post['12Hour'] = thisday.strftime("%I").sub(/^0/,"")
+				post['24Hour'] = thisday.hour
+				post['12HourWithZero'] = thisday.strftime("%I")
+				post['24HourWithZero'] = thisday.strftime("%H")
+				post['Minutes'] = thisday.strftime("%M")
+				post['Seconds'] = thisday.strftime("%S")
+				post['Beats'] = (thisday.usec / 1000).round
+				post['TimeAgo'] = thisday.ago
+			
+				post['Permalink'] = "/post/#{post['PostId']}/" # TODO: Port number
+				post['ShortURL'] = post['Permalink'] # No need for a real short URL
+				post['TagsAsClasses'] = (post['Tags'] || []).collect{ |tag| tag.gsub(/[^a-z]/i,"_").downcase }.join(" ")
+				post['}numberonpage'] = post_count + 1 # use a } at the begining so the theme can't access it
+			
+				# Group Posts
+				if !post['GroupPostMember'].nil?
+					poster = nil
+
+					@groupmembers.each do |groupmember|
+						p groupmember
+						if groupmember['Name'] == post['GroupPostMemberName']
+							poster = Hash[*groupmember.to_a.collect {|key,value| ["PostAuthor#{key}",value] }.flatten]
+							break
+						end
+					end
+
+					p poster
+
+					if poster.nil?
+						# Add to log, GroupMemberPost not found in datafile
+					else
+						post.merge! poster
+					end
+				end
+			
+				post['Title'] ||= "" # This prevents the site's title being used when it shouldn't be
+			
+				case post['Type']
+				when 'Photo'
+					post['PhotoAlt'] = CGI.escapeHTML(post['Caption'])
+					if !post['LinkURL'].nil?
+						post['LinkOpenTag'] = "<a href=\"#{post['LinkURL']}\">"
+						post['LinkCloseTag'] = "</a>"
+					end
+				when 'Audio'
+					post['AudioPlayerBlack'] = audio_player(post['AudioFile'],"black")
+					post['AudioPlayerGrey'] = audio_player(post['AudioFile'],"grey")
+					post['AudioPlayerWhite'] = audio_player(post['AudioFile'],"white")
+					post['AudioPlayer'] = audio_player(post['AudioFile'])
+					post['}blocks']['ExternalAudio'] = !(post['AudioFile'] =~/^http:\/\/(?:www\.)?tumblr\.com/)
+					post['AudioFile'] = nil # We don't want this tag to be parsed if it happens to be in there
+					post['}blocks']['Artist'] = !post['Artist'].empty?
+					post['}blocks']['Album'] = !post['Album'].empty?
+					post['}blocks']['TrackName'] = !post['TrackName'].empty?
+				end
+
+				return post
+		end
   
     private
     def parse(theme,blocks = {},constants = {})
 
       blocks = blocks.dup
       constants = constants.dup
+			times_to_repeat = nil
 
-	  # Not sure what this does
+			# Not sure what this does
       blocks.merge! constants['}blocks'] if !constants['}blocks'].nil?
 
-	  # Each block match, parse something
-	  theme.gsub(BlockRegex) do |match| # TODO:add not block to the second term
+			# Each block match, parse something
+			theme.gsub(BlockRegex) do |match| # TODO:add not block to the second term
 
         if $2 # block
           blockname = $1
@@ -203,102 +300,34 @@ module Thimblr
           # Back Compatibility
           blockname = BackCompatibility['Type'][blockname] if !BackCompatibility['Type'][blockname].nil?
         
-          inv = false
+          invertBlock = false
+
           case blockname
+
           when /^IfNot(.*)$/
-            inv = true
+            invertBlock = true
             blockname = $1
           when /^If(.*)$/
             blockname = $1
           when 'Posts'
-            if @blocks['Posts']
+						return if not @blocks['Posts']
 
-              lastday = nil
-              repeat = @settings['PostsPerPage'].times.collect do |n|
-                if not (post = @posts.advance).nil?
-                  post['}blocks'] = {}
-                  post['}blocks']['Date'] = true # Always render Date on Post pages
-                  thisday = Time.at(post['Timestamp'] || Time.new)
-                  post['}blocks']['NewDayDate'] = thisday.strftime("%Y-%m-%d") != lastday
-                  post['}blocks']['SameDayDate'] = !post['}blocks']['NewDayDate']
-                
-                  lastday = thisday.strftime("%Y-%m-%d")
-                  post['DayOfMonth'] = thisday.day
-                  post['DayOfMonthWithZero'] = thisday.strftime("%d")
-                  post['DayOfWeek'] = thisday.strftime("%A")
-                  post['ShortDayOfWeek'] = thisday.strftime("%a")
-                  post['DayOfWeekNumber'] = thisday.strftime("%w").to_i + 1
-                  ordinals = ['st','nd','rd']
-                  post['DayOfMonthSuffix'] = ([11,12].include? thisday.day) ? "th" : ordinals[thisday.day % 10 - 1]
-                  post['DayOfYear'] = thisday.strftime("%j")
-                  post['WeekOfYear'] = thisday.strftime("%W")
-                  post['Month'] = thisday.strftime("%B")
-                  post['ShortMonth'] = thisday.strftime("%b")
-                  post['MonthNumber'] = thisday.month
-                  post['MonthNumberWithZero'] = thisday.strftime("%w")
-                  post['Year'] = thisday.strftime("%Y")
-                  post['ShortYear'] = thisday.strftime("%y")
-                  post['CapitalAmPm'] = thisday.strftime("%p")
-                  post['AmPm'] = post['CapitalAmPm'].downcase
-                  post['12Hour'] = thisday.strftime("%I").sub(/^0/,"")
-                  post['24Hour'] = thisday.hour
-                  post['12HourWithZero'] = thisday.strftime("%I")
-                  post['24HourWithZero'] = thisday.strftime("%H")
-                  post['Minutes'] = thisday.strftime("%M")
-                  post['Seconds'] = thisday.strftime("%S")
-                  post['Beats'] = (thisday.usec / 1000).round
-                  post['TimeAgo'] = thisday.ago
-                
-                  post['Permalink'] = "/post/#{post['PostId']}/" # TODO: Port number
-                  post['ShortURL'] = post['Permalink'] # No need for a real short URL
-                  post['TagsAsClasses'] = (post['Tags'] || []).collect{ |tag| tag.gsub(/[^a-z]/i,"_").downcase }.join(" ")
-                  post['}numberonpage'] = n + 1 # use a } at the begining so the theme can't access it
-                
-                  # Group Posts
-                  if !post['GroupPostMember'].nil?
-                    poster = nil
-                    @groupmembers.each do |groupmember|
-                      p groupmember
-                      if groupmember['Name'] == post['GroupPostMemberName']
-                        poster = Hash[*groupmember.to_a.collect {|key,value| ["PostAuthor#{key}",value] }.flatten]
-                        break
-                      end
-                    end
-                    p poster
-                    if poster.nil?
-                      # Add to log, GroupMemberPost not found in datafile
-                    else
-                      post.merge! poster
-                    end
-                  end
-                
-                  post['Title'] ||= "" # This prevents the site's title being used when it shouldn't be
-                
-                  case post['Type']
-                  when 'Photo'
-                    post['PhotoAlt'] = CGI.escapeHTML(post['Caption'])
-                    if !post['LinkURL'].nil?
-                      post['LinkOpenTag'] = "<a href=\"#{post['LinkURL']}\">"
-                      post['LinkCloseTag'] = "</a>"
-                    end
-                  when 'Audio'
-                    post['AudioPlayerBlack'] = audio_player(post['AudioFile'],"black")
-                    post['AudioPlayerGrey'] = audio_player(post['AudioFile'],"grey")
-                    post['AudioPlayerWhite'] = audio_player(post['AudioFile'],"white")
-                    post['AudioPlayer'] = audio_player(post['AudioFile'])
-                    post['}blocks']['ExternalAudio'] = !(post['AudioFile'] =~/^http:\/\/(?:www\.)?tumblr\.com/)
-                    post['AudioFile'] = nil # We don't want this tag to be parsed if it happens to be in there
-                    post['}blocks']['Artist'] = !post['Artist'].empty?
-                    post['}blocks']['Album'] = !post['Album'].empty?
-                    post['}blocks']['TrackName'] = !post['TrackName'].empty?
-                  end
-                
-                  post
-                end
-              end.compact
-			  @posts.seek(0) # Reset post iterator for subsequent blocks
-            end
-          # Post details
+						lastday = nil
+
+						times_to_repeat = @settings['PostsPerPage'].times.map do |post_count|
+
+							post = @posts.advance
+
+							if !post.nil?
+								parse_post(post, lastday, post_count)
+							end
+
+						end
+
+						times_to_repeat.compact!
+
+						@posts.seek(0) # Reset post iterator for subsequent blocks
+						
           when 'Title'
             blocks['Title'] = !constants['Title'].empty?
           when /^Post(?:[1-9]|1[0-5])$/
@@ -320,7 +349,7 @@ module Thimblr
           when 'Caption'
             blocks['Caption'] = !constants['Caption'].empty?
           when 'SearchPage'
-            repeat = @searchresults if blocks['SearchPage']
+            times_to_repeat = @searchresults if blocks['SearchPage']
           # Quote Posts
           when 'Source'
             blocks['Source'] = !constants['Source'].empty?
@@ -332,7 +361,7 @@ module Thimblr
           when 'Lines'
             alt = {true => 'odd',false => 'even'}
             iseven = false
-            repeat = constants['Lines'].collect do |line|
+            times_to_repeat = constants['Lines'].collect do |line|
               parts = line.to_a[0]
               {"Line" => parts[1],"Label" => parts[0],"Alt" => alt[iseven = !iseven]}
             end
@@ -341,21 +370,21 @@ module Thimblr
           when 'Label'
             blocks['Label'] = !constants['Label'].empty?
           # TODO: Notes
-		  when 'NoteCount'
-			notes = constants['NoteCount']
-			if(notes && notes > 0)
-				blocks['NoteCount'] = true
-			end
+					when 'NoteCount'
+					notes = constants['NoteCount']
+					if(notes && notes > 0)
+						blocks['NoteCount'] = true
+					end
           # Tags
           when 'HasTags'
             if constants['Tags'].length > 0
               blocks['HasTags'] = true
             end
           when 'Tags'
-            repeat = constants['Tags'].collect do |tag|
+            times_to_repeat = constants['Tags'].collect do |tag|
               {"Tag" => tag,"URLSafeTag" => tag.gsub(/[^a-zA-Z]/,"_").downcase,"TagURL" => "/tagged/#{CGI.escape(tag)}","ChronoTagURL" => "/tagged/#{CGI.escape(tag)}"} # TODO: ChronoTagURL
             end
-            blocks['Tags'] = repeat.length > 0
+            blocks['Tags'] = times_to_repeat.length > 0
             constants['Tags'] = nil
           # Groups
           when 'GroupMembers'
@@ -363,21 +392,26 @@ module Thimblr
               blocks['GroupMembers'] = true
             end
           when 'GroupMember'
-            repeat = constants['GroupMembers'].collect do |groupmember|
+            times_to_repeat = constants['GroupMembers'].collect do |groupmember|
               Hash[*groupmember.collect{ |key,value| ["GroupMember#{key}",value] }.flatten]
             end
-            blocks['GroupMember'] = repeat.length > 0
+            blocks['GroupMember'] = times_to_repeat.length > 0
             constants['GroupMembers'] = nil
           # TODO: Day Pages
           # TODO: Tag Pages
           end
         
-          # Process away!
-          (repeat || [constants]).collect do |consts|
-            if (blocks[blockname] ^ inv) or consts['Type'] == blockname
-              parse(content,blocks,(constants.merge consts))
+          # For the # of times to repat as defined above
+					# OR for the number of constants
+					# Process recursively
+          (times_to_repeat || [constants]).collect do |match|
+						# If (exclusively) has block name or nverting block 
+						# OR if this match's type is the blockname
+            if (blocks[blockname] ^ invertBlock) or match['Type'] == blockname
+              parse(content,blocks,(constants.merge(match)))
             end
           end.join
+
         else
           constants[$3]
         end
