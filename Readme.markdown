@@ -24,7 +24,7 @@ Thimblr Base installs the default settings yml, theme file, and data file in you
 
 You can change where thimblr base loads the theme and data file by modifying the values in `settings.yml`. This is very helpful if you store your themes in a repository elsewhere on your computer.
 
-*Tips*: 
+## Tips: 
 
 - This is a "Rack Application" and can easily run on [Pow](http://pow.cx)
 - If you have asset files (css/js/etc), it can be useful to sym link their root folder to the applications `public` folder. For example:  
