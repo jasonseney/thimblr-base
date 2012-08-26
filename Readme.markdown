@@ -31,6 +31,7 @@ You can change where thimblr base loads the theme and data file by modifying the
 	`cd public`  
 	`ln -s ~/myapp/assets/ assets`  
 In html file: `<link href="/assets/css/theme.css" rel="stylesheet" type="text/css" >`
+- See [this comment](https://github.com/jasonseney/thimblr-base/issues/2#issuecomment-8038048) for using Appearance Options
 
 
 Credits
