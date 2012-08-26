@@ -28,7 +28,7 @@ module Thimblr
 
 	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{([\w\-:]+)(\w+\s+\w+)*\}/m
     
-    def initialize(data_file,theme_markup = nil,settings = {})
+  def initialize(data_file,theme_markup = nil,settings = {})
 
       data = YAML::load(open(data_file))
 
@@ -59,7 +59,7 @@ module Thimblr
 	  @theme = theme_markup
 
 	  load_appearance_options()
-    end
+	end
   
 	def load_appearance_options()
       # Get the meta constants
@@ -130,34 +130,34 @@ module Thimblr
       parse(@theme,blocks,constants)
     end
 
-	def render_tagPage(tag, page = 1)
-      blocks = @blocks
-      constants = @constants
+		def render_tagPage(tag, page = 1)
+				blocks = @blocks
+				constants = @constants
 
-	  # Filter out posts without tag or not this tag
-	  @posts.delete_if do |post|
-		!post['Tags'] or !post['Tags'].any?{ |s| s.casecmp(tag)==0 }
-	  end
+			# Filter out posts without tag or not this tag
+			@posts.delete_if do |post|
+			!post['Tags'] or !post['Tags'].any?{ |s| s.casecmp(tag)==0 }
+			end
 
-      constants['TotalPages'] = (@posts.length / @settings['PostsPerPage'].to_i).ceil
+				constants['TotalPages'] = (@posts.length / @settings['PostsPerPage'].to_i).ceil
 
-      blocks['PreviousPage'] = page > 1
-      blocks['NextPage'] = page < constants['TotalPages']
-      blocks['Posts'] = true
-      blocks['IndexPage'] = true
-			blocks['TagPage'] = true
-      constants['NextPage'] = page + 1
-      constants['CurrentPage'] = page
-      constants['PreviousPage'] = page - 1
+				blocks['PreviousPage'] = page > 1
+				blocks['NextPage'] = page < constants['TotalPages']
+				blocks['Posts'] = true
+				blocks['IndexPage'] = true
+				blocks['TagPage'] = true
+				constants['NextPage'] = page + 1
+				constants['CurrentPage'] = page
+				constants['PreviousPage'] = page - 1
 
-      constants['Tag'] = tag
-      constants['URLSafeTag'] = URI::encode(tag.gsub(/\s/, '+'))
-    
-      # ffw thru posts array if required
-      @posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
-      parse(@theme,blocks,constants)
+				constants['Tag'] = tag
+				constants['URLSafeTag'] = URI::encode(tag.gsub(/\s/, '+'))
+			
+				# ffw thru posts array if required
+				@posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
+				parse(@theme,blocks,constants)
 
-	end
+		end
   
     # Renders the search page from the query
     def render_search(query)
@@ -197,19 +197,25 @@ module Thimblr
 
 		private
 		def parse_post(post,lastday, post_count)
+
 				post['}blocks'] = {}
 				post['}blocks']['Date'] = true # Always render Date on Post pages
+
 				thisday = Time.at(post['Timestamp'] || Time.new)
+
 				post['}blocks']['NewDayDate'] = thisday.strftime("%Y-%m-%d") != lastday
 				post['}blocks']['SameDayDate'] = !post['}blocks']['NewDayDate']
 			
 				lastday = thisday.strftime("%Y-%m-%d")
+
 				post['DayOfMonth'] = thisday.day
 				post['DayOfMonthWithZero'] = thisday.strftime("%d")
 				post['DayOfWeek'] = thisday.strftime("%A")
 				post['ShortDayOfWeek'] = thisday.strftime("%a")
 				post['DayOfWeekNumber'] = thisday.strftime("%w").to_i + 1
+
 				ordinals = ['st','nd','rd']
+
 				post['DayOfMonthSuffix'] = ([11,12].include? thisday.day) ? "th" : ordinals[thisday.day % 10 - 1]
 				post['DayOfYear'] = thisday.strftime("%j")
 				post['WeekOfYear'] = thisday.strftime("%W")
@@ -285,7 +291,7 @@ module Thimblr
 
       blocks = blocks.dup
       constants = constants.dup
-			times_to_repeat = nil
+			sections_processed = nil
 
 			# Not sure what this does
       blocks.merge! constants['}blocks'] if !constants['}blocks'].nil?
@@ -314,17 +320,12 @@ module Thimblr
 
 						lastday = nil
 
-						times_to_repeat = @settings['PostsPerPage'].times.map do |post_count|
-
+						sections_processed = @settings['PostsPerPage'].times.map do |post_count|
 							post = @posts.advance
-
-							if !post.nil?
-								parse_post(post, lastday, post_count)
-							end
-
+							parse_post(post, lastday, post_count) if !post.nil?
 						end
 
-						times_to_repeat.compact!
+						sections_processed.compact!
 
 						@posts.seek(0) # Reset post iterator for subsequent blocks
 						
@@ -349,7 +350,7 @@ module Thimblr
           when 'Caption'
             blocks['Caption'] = !constants['Caption'].empty?
           when 'SearchPage'
-            times_to_repeat = @searchresults if blocks['SearchPage']
+            sections_processed = @searchresults if blocks['SearchPage']
           # Quote Posts
           when 'Source'
             blocks['Source'] = !constants['Source'].empty?
@@ -361,7 +362,7 @@ module Thimblr
           when 'Lines'
             alt = {true => 'odd',false => 'even'}
             iseven = false
-            times_to_repeat = constants['Lines'].collect do |line|
+            sections_processed = constants['Lines'].collect do |line|
               parts = line.to_a[0]
               {"Line" => parts[1],"Label" => parts[0],"Alt" => alt[iseven = !iseven]}
             end
@@ -381,10 +382,10 @@ module Thimblr
               blocks['HasTags'] = true
             end
           when 'Tags'
-            times_to_repeat = constants['Tags'].collect do |tag|
+            sections_processed = constants['Tags'].collect do |tag|
               {"Tag" => tag,"URLSafeTag" => tag.gsub(/[^a-zA-Z]/,"_").downcase,"TagURL" => "/tagged/#{CGI.escape(tag)}","ChronoTagURL" => "/tagged/#{CGI.escape(tag)}"} # TODO: ChronoTagURL
             end
-            blocks['Tags'] = times_to_repeat.length > 0
+            blocks['Tags'] = sections_processed.length > 0
             constants['Tags'] = nil
           # Groups
           when 'GroupMembers'
@@ -392,10 +393,10 @@ module Thimblr
               blocks['GroupMembers'] = true
             end
           when 'GroupMember'
-            times_to_repeat = constants['GroupMembers'].collect do |groupmember|
+            sections_processed = constants['GroupMembers'].collect do |groupmember|
               Hash[*groupmember.collect{ |key,value| ["GroupMember#{key}",value] }.flatten]
             end
-            blocks['GroupMember'] = times_to_repeat.length > 0
+            blocks['GroupMember'] = sections_processed.length > 0
             constants['GroupMembers'] = nil
           # TODO: Day Pages
           # TODO: Tag Pages
@@ -404,7 +405,7 @@ module Thimblr
           # For the # of times to repat as defined above
 					# OR for the number of constants
 					# Process recursively
-          (times_to_repeat || [constants]).collect do |match|
+          (sections_processed || [constants]).collect do |match|
 						# If (exclusively) has block name or nverting block 
 						# OR if this match's type is the blockname
             if (blocks[blockname] ^ invertBlock) or match['Type'] == blockname
