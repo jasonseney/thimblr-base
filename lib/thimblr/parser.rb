@@ -281,6 +281,8 @@ module Thimblr
 					post['}blocks']['Artist'] = !post['Artist'].empty?
 					post['}blocks']['Album'] = !post['Album'].empty?
 					post['}blocks']['TrackName'] = !post['TrackName'].empty?
+        when 'Video'
+          ap "video"
 				end
 
 				return post
@@ -382,11 +384,13 @@ module Thimblr
               blocks['HasTags'] = true
             end
           when 'Tags'
-            sections_processed = constants['Tags'].collect do |tag|
-              {"Tag" => tag,"URLSafeTag" => tag.gsub(/[^a-zA-Z]/,"_").downcase,"TagURL" => "/tagged/#{CGI.escape(tag)}","ChronoTagURL" => "/tagged/#{CGI.escape(tag)}"} # TODO: ChronoTagURL
+            if !constants['Tags'].nil?
+              sections_processed = constants['Tags'].collect do |tag|
+                {"Tag" => tag,"URLSafeTag" => tag.gsub(/[^a-zA-Z]/,"_").downcase,"TagURL" => "/tagged/#{CGI.escape(tag)}","ChronoTagURL" => "/tagged/#{CGI.escape(tag)}"} # TODO: ChronoTagURL
+              end
+              blocks['Tags'] = sections_processed.length > 0
+              constants['Tags'] = nil
             end
-            blocks['Tags'] = sections_processed.length > 0
-            constants['Tags'] = nil
           # Groups
           when 'GroupMembers'
             if !constants['GroupMembers'].nil?

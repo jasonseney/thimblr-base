@@ -19,7 +19,8 @@ class Thimblr::Application < Sinatra::Base
   Locations = {
     "mac" => {"dir" => "~/Library/Application Support/Thimblr/", 'name' => "Application Support", 'platform' => "mac"},
     "nix" => {'dir' => "~/.thimblr/",'name' => "Home directory", 'platform' => "nix"},
-    "win" => {'dir' => "~/AppData/Roaming/Thimblr/",'name' => "AppData", 'platform' => "win"} # TODO: This value is hardcoded for vista/7, I should probably superceed expand_path and parse for different versions of Windows here
+    "win" => {'dir' => "~/AppData/Roaming/Thimblr/",'name' => "AppData", 'platform' => "win"} 
+	  # TODO: This value is hardcoded for vista/7, I should probably superceed expand_path and parse for different versions of Windows here
   }
   
   case RbConfig::CONFIG['target_os']
@@ -37,7 +38,7 @@ class Thimblr::Application < Sinatra::Base
   def self.parse_config(config)
 	set :themeFile , File.expand_path(config['ThemeFile'], @userAppFolder)
 	set :dataFile , File.expand_path(config['DataFile'], @userAppFolder)
-	set :assetsLocation, config['AssetsLocation']
+	set :assets_location, config['AssetsLocation']
 	set :tumblr, Thimblr::Parser::Defaults.merge(config['Tumblr'] || {})
   end
 
@@ -105,27 +106,24 @@ class Thimblr::Application < Sinatra::Base
   end
 
   before do
-	# Only on /thimblr/ pages, initialize parser
-    # if !request.env['PATH_INFO'] =~ /^\/settings/
+    if File.exists?(settings.themeFile) and File.exists?(settings.dataFile) 
 
-	  puts "#{settings.themeFile} : #{settings.dataFile}"
+      theme_markup = open(settings.themeFile).read
 
-      if File.exists?(settings.themeFile) and File.exists?(settings.dataFile) 
+      themeFolder = File.expand_path(File.dirname(settings.themeFile))
 
-		theme_markup = open(settings.themeFile).read
-
-		themeFolder = File.expand_path(File.dirname(settings.themeFile))
-
-		Liquid::Template.file_system = Liquid::LocalFileSystem.new(themeFolder)
-		liquid_template = Liquid::Template.parse(theme_markup) # Parses and compiles the template
-		theme_liquified = liquid_template.render("assetsLocation" => settings.assetsLocation)
+      Liquid::Template.file_system = Liquid::LocalFileSystem.new(themeFolder)
+      liquid_template = Liquid::Template.parse(theme_markup) # Parses and compiles the template
+      theme_liquified = liquid_template.render(
+        "assets_location" => settings.assets_location,
+        "is_local" => true 
+      )
 
         @parser = Thimblr::Parser.new(settings.dataFile,theme_liquified,settings.tumblr)
-      else
-		#TODO: This should have an error
-		halt 500, "Missing file(s). Theme: \"#{settings.themeFile}\" , Data: \"#{settings.dataFile}\""
-      end
-    #end
+    else
+      #TODO: This should have an error
+      halt 500, "Missing file(s). Theme: \"#{settings.themeFile}\" , Data: \"#{settings.dataFile}\""
+    end
   end
 
   # The index page
