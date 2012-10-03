@@ -143,7 +143,7 @@ class Thimblr::Application < Sinatra::Base
 
   # TODO: tagged pages
   get %r{^/tagged/(.+)$} do |tag|
-	  tag["-"] = " "
+	  tag["-"] = " " if tag.include? "-"
 	  @parser.render_tagPage(tag)
   end
 
@@ -152,7 +152,6 @@ class Thimblr::Application < Sinatra::Base
     halt 501, "Not Implemented"
   end
 
-  # TODO: Pages
   get '/*' do |pageURL|
     @parser.render_page(pageURL)
   end
