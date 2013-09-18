@@ -27,7 +27,7 @@ module Thimblr
     }
 
 	BlockRegex = /\{block:([\w:]+)\}(.*?)\{\/block:\1\}|(?<!\{)\{(([\w\-:]+)(\w+\s+\w+)*)\}/m
-    
+
   def initialize(data_file,theme_markup = nil,settings = {})
 
       data = YAML::load(open(data_file))
@@ -39,7 +39,7 @@ module Thimblr
       @pages = data['Pages']
       @following = data['Following']
       @followed = data['Followed']
-	  
+
       # Add all suitable data options to @constants
       @constants = data.delete_if { |key,val| ["Pages","Following","Posts","SubmissionsEnabled","Followed"].include? key }
       @constants['RSS'] = '/rss'
@@ -55,12 +55,12 @@ module Thimblr
         'Followed'           => (@followed.length > 0 rescue false),
         'More'               => true
       }
-    
+
 	  @theme = theme_markup
 
 	  load_appearance_options()
 	end
-  
+
 	def load_appearance_options()
       # Get the meta constants
 
@@ -83,7 +83,7 @@ module Thimblr
 
       @constants['MetaDescription'] = CGI.escapeHTML(@constants['Description'])
 	end
-  
+
     # Renders a tumblr page from the stored template
     def render_posts(page = 1)
       blocks = @blocks
@@ -96,12 +96,12 @@ module Thimblr
       constants['NextPage'] = page + 1
       constants['CurrentPage'] = page
       constants['PreviousPage'] = page - 1
-    
+
       # ffw thru posts array if required
       @posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
       parse(@theme,blocks,constants)
     end
-  
+
     # Renders an individual post
     def render_permalink(postid)
       postid = postid.to_i
@@ -114,7 +114,7 @@ module Thimblr
         post['PostId'] != postid
       end
       raise "Post Not Found" if @posts.length != 1
-      
+
       blocks['Posts'] = true
       blocks['PostTitle'] = true
       blocks['PostSummary'] = true
@@ -125,7 +125,7 @@ module Thimblr
       blocks['NextPost'] = (postid > 0)
       constants['PreviousPost'] = "/post/#{postid - 1}"
       constants['NextPost'] = "/post/#{postid + 1}"
-    
+
       # Generate a post summary if a title isn't present
       parse(@theme,blocks,constants)
     end
@@ -152,13 +152,13 @@ module Thimblr
 
 				constants['Tag'] = tag
 				constants['URLSafeTag'] = URI::encode(tag.gsub(/\s/, '+'))
-			
+
 				# ffw thru posts array if required
 				@posts.seek((page - 1) * @settings['PostsPerPage'].to_i)
 				parse(@theme,blocks,constants)
 
 		end
-  
+
     # Renders the search page from the query
     def render_search(query)
       @searchresults = []
@@ -170,10 +170,10 @@ module Thimblr
       constants['SearchQuery'] = query
       constants['URLSafeSearchQuery'] = CGI.escape(query)
       constants['SearchResultCount'] = @searchresults.length
-    
+
       parse(@theme,blocks,constants)
     end
-  
+
     # Renders a special page
     def render_page(pageURL)
 
@@ -185,7 +185,7 @@ module Thimblr
       blocks['PostSummary'] = true
       blocks['PermalinkPage'] = true
       blocks['PermalinkPagination'] = false
-    
+
 			matchingPages = @pages.select { |page| page['PageURL'] == pageURL }
 
       raise "Page Not Found" if matchingPages.length != 1
@@ -205,7 +205,7 @@ module Thimblr
 
 				post['}blocks']['NewDayDate'] = thisday.strftime("%Y-%m-%d") != lastday
 				post['}blocks']['SameDayDate'] = !post['}blocks']['NewDayDate']
-			
+
 				lastday = thisday.strftime("%Y-%m-%d")
 
 				post['DayOfMonth'] = thisday.day
@@ -235,12 +235,12 @@ module Thimblr
 				post['Seconds'] = thisday.strftime("%S")
 				post['Beats'] = (thisday.usec / 1000).round
 				post['TimeAgo'] = thisday.ago
-			
+
 				post['Permalink'] = "/post/#{post['PostId']}/" # TODO: Port number
 				post['ShortURL'] = post['Permalink'] # No need for a real short URL
 				post['TagsAsClasses'] = (post['Tags'] || []).collect{ |tag| tag.gsub(/[^a-z]/i,"_").downcase }.join(" ")
 				post['}numberonpage'] = post_count + 1 # use a } at the begining so the theme can't access it
-			
+
 				# Group Posts
 				if !post['GroupPostMember'].nil?
 					poster = nil
@@ -261,9 +261,9 @@ module Thimblr
 						post.merge! poster
 					end
 				end
-			
+
 				post['Title'] ||= "" # This prevents the site's title being used when it shouldn't be
-			
+
 				case post['Type']
 				when 'Photo'
 					post['PhotoAlt'] = CGI.escapeHTML(post['Caption'])
@@ -287,7 +287,7 @@ module Thimblr
 
 				return post
 		end
-  
+
     private
     def parse(theme,blocks = {},constants = {})
 
@@ -304,10 +304,10 @@ module Thimblr
         if $2 # block
           blockname = $1
           content = $2
-          
+
           # Back Compatibility
           blockname = BackCompatibility['Type'][blockname] if !BackCompatibility['Type'][blockname].nil?
-        
+
           invertBlock = false
 
           case blockname
@@ -330,7 +330,7 @@ module Thimblr
 						sections_processed.compact!
 
 						@posts.seek(0) # Reset post iterator for subsequent blocks
-						
+
           when 'Title'
             blocks['Title'] = !constants['Title'].empty?
           when /^Post(?:[1-9]|1[0-5])$/
@@ -380,7 +380,7 @@ module Thimblr
 					end
           # Tags
           when 'HasTags'
-            if constants['Tags'].length > 0
+            if constants.fetch('Tags', []).length > 0
               blocks['HasTags'] = true
             end
           when 'Tags'
@@ -405,12 +405,12 @@ module Thimblr
           # TODO: Day Pages
           # TODO: Tag Pages
           end
-        
+
           # For the # of times to repat as defined above
 					# OR for the number of constants
 					# Process recursively
           (sections_processed || [constants]).collect do |match|
-						# If (exclusively) has block name or nverting block 
+						# If (exclusively) has block name or nverting block
 						# OR if this match's type is the blockname
             if (blocks[blockname] ^ invertBlock) or match['Type'] == blockname
               parse(content,blocks,(constants.merge(match)))
@@ -422,7 +422,7 @@ module Thimblr
         end
       end
     end
-  
+
     def audio_player(audiofile,colour = "") # Colour is one of 'black', 'white' or 'grey'
       case colour
       when "black"
@@ -440,7 +440,7 @@ module Thimblr
       return <<-END
         <script type="text/javascript" language="javascript" src="http://assets.tumblr.com/javascript/tumblelog.js?16"></script><span id="audio_player_#{@apid}">[<a href="http://www.adobe.com/shockwave/download/download.cgi?P1_Prod_Version=ShockwaveFlash" target="_blank">Flash 9</a> is required to listen to audio.]</span><script type="text/javascript">replaceIfFlash(9,"audio_player_#{@apid}",'<div class="audio_player"><embed type="application/x-shockwave-flash" src="/audio_player#{colour}.swf?audio_file=#{audiofile}" height="27" width="207" quality="best"></embed></div>')</script>
       END
-    
+
     end
   end
 
@@ -450,22 +450,22 @@ module Thimblr
       @position = @position + 1 rescue 1
       self[@position - 1]
     end
-  
+
     # Returns the currently selected item and moves the pointer back one
     def retreat
       @position = @position - 1 rescue -1
       self[@position + 1]
     end
-  
+
     def seek(n)
       self[@position = n]
     end
-  
+
     def tell
       @position
     end
   end
-  
+
   class Time < Time
     def ago
       "some time ago"
